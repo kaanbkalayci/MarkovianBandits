@@ -1,0 +1,19 @@
+# data
+data/
+
+# experiment outputs
+results/runs/
+
+# python
+__pycache__/
+*.pyc
+
+# large artifacts
+*.pkl
+*.npy
+*.npz
+*.pt
+*.ckpt
+
+# env
+.env
