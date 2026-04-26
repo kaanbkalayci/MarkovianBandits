@@ -1,55 +1,62 @@
 # real-data-tests
 
-This subproject contains the real-data pipeline for the vehicle/sensor bandit experiments.
+This subproject is the real-data bandit pipeline for the vehicle/sensor experiments.
 
-The repo currently has three layers:
+At this point the repo has four layers:
 
-1. Data loading and synchronization from raw GPS + FLAC sensor recordings.
-2. Bandit dataset construction from synchronized vehicle/sensor traces.
-3. Notebook-driven two-tower training runs and saved result artifacts.
+1. raw data loading and synchronization
+2. bandit dataset construction
+3. learned-embedding run loading and bandit instance construction
+4. offline notebook experiments and saved result artifacts
 
-## Current repo map
+## Repo map
 
 ```text
 real-data-tests/
-├── notebooks/
-│   ├── Experiment-Vehicle-Two-Tower.ipynb
-│   ├── Experiment.ipynb
-│   └── Vehicle-Bandit_instance.ipynb
-├── results/
-│   └── final_embedding_*/
-├── scripts/
-│   ├── dataloader.py
-│   ├── bandit_dataset.py
-│   ├── bandit_dataloader.py
-│   ├── bandit_dataloader_simple.py
-│   ├── bandit_dataloader_utility.py
-│   └── bandit_dataloader_utility_pc_linear.py
-└── requirements.txt
+|- notebooks/
+|  |- Experiment-Vehicle-Two-Tower.ipynb
+|  |- Vehicle-Bandit_instance.ipynb
+|  `- Experiment.ipynb
+|- results/
+|  |- README.md
+|  `- final_embedding_*/
+|- scripts/
+|  |- __init__.py
+|  |- dataloader.py
+|  |- bandit_dataset.py
+|  |- bandit_instance.py
+|  |- bandit_eval.py
+|  |- bandit_dataloader.py
+|  |- bandit_dataloader_simple.py
+|  |- bandit_dataloader_utility.py
+|  `- bandit_dataloader_utility_pc_linear.py
+`- requirements.txt
 ```
 
-## What each script does
+## Canonical code paths
 
 ### `scripts/dataloader.py`
 
-Canonical raw-data loader. It:
+Raw-data entrypoint for the vehicle pipeline.
 
-- loads vehicle GPS
-- loads FLAC audio per node
-- aggregates chunked audio power
-- synchronizes GPS and sensor data
-- computes distance-to-node features
-- provides plotting helpers for continuity, map layout, and RSSI/distance sanity checks
+Main job:
 
-Main entrypoint:
+- read vehicle GPS
+- load FLAC recordings for each node
+- aggregate chunked audio power
+- synchronize sensor and GPS streams
+- compute distance-to-node features
+- provide plotting helpers for sanity checks
+
+Main function:
 
 - `load_data(...)`
 
 ### `scripts/bandit_dataset.py`
 
-Canonical bandit dataset entrypoint. Use this first going forward.
+Canonical bandit dataset entrypoint. This is the organized wrapper over the older dataset-builder files.
 
-Main entrypoints:
+Main functions:
 
 - `build_bandit_dataset_variant(...)`
 - `build_triggered_bandit_dataset(...)`
@@ -57,70 +64,96 @@ Main entrypoints:
 - `build_full_universe_rational_dataset(...)`
 - `build_full_universe_piecewise_linear_dataset(...)`
 
-### Legacy builder modules in `scripts/`
+Supported variants:
 
-These are still kept for notebook compatibility:
+- `triggered`
+- `gaussian`
+- `rational`
+- `piecewise_linear` or `pc_linear`
 
-- `bandit_dataloader.py`
-  Triggered-action builder. Only admissible subsets of triggered nodes are generated at each time.
-- `bandit_dataloader_simple.py`
+### `scripts/bandit_instance.py`
+
+Builds the linear bandit instance from a saved embedding run.
+
+Main jobs:
+
+- load `examples_with_embed.pkl`, `ridge_model.pkl`, and `meta.json`
+- recover `theta_star` from the ridge head
+- construct per-time action feature matrices
+- expose oracle rewards, linearized rewards, and misspecification
+
+Main functions:
+
+- `load_embedding_run(...)`
+- `build_bandit_instance(...)`
+- `build_bandit_instance_from_run(...)`
+- `summarize_instance(...)`
+
+### `scripts/bandit_eval.py`
+
+Offline evaluation helpers for a constructed bandit instance.
+
+Main functions:
+
+- `oracle_action_indices(...)`
+- `random_action_indices(...)`
+- `greedy_action_indices_from_reward_source(...)`
+- `evaluate_action_indices(...)`
+- `evaluate_score_lists(...)`
+
+## Legacy dataset-builder modules
+
+These are still useful and are kept for direct notebook compatibility:
+
+- `scripts/bandit_dataloader.py`
+  Triggered-action builder. Only subsets from the triggered node set are available at a given time.
+- `scripts/bandit_dataloader_simple.py`
   Full action universe with Gaussian-style utility.
-- `bandit_dataloader_utility.py`
-  Full action universe with rational utility.
-- `bandit_dataloader_utility_pc_linear.py`
+- `scripts/bandit_dataloader_utility.py`
+  Full action universe with rational or divisor-style utility.
+- `scripts/bandit_dataloader_utility_pc_linear.py`
   Full action universe with clipped piecewise-linear utility.
 
-## Notebook status
+## Notebook roles
 
 ### `notebooks/Experiment-Vehicle-Two-Tower.ipynb`
 
-This is the main notebook for the vehicle bandit work. It contains:
+Main training notebook for the vehicle bandit workflow. It contains:
 
-- the data loading pass
-- the first triggered-action bandit formulation
+- raw data loading
+- the early triggered-action setup
 - later full 129-arm formulations
-- multiple two-tower experiments
-- final artifact export into `results/final_embedding_*`
+- multiple two-tower runs
+- export of trained artifacts into `results/final_embedding_*`
 
-Important note:
-
-- this notebook contains several successive experiment blocks, including repeated training code with different utility definitions and hidden sizes
-- the end of the notebook appears to be the most relevant "final" workflow
-
-### `notebooks/Experiment.ipynb`
-
-Separate experiment notebook for a different embedding/history pipeline. It does not look like the main vehicle two-tower production path.
+This is still the source of truth for how the two-tower embeddings were trained.
 
 ### `notebooks/Vehicle-Bandit_instance.ipynb`
 
-This file currently appears malformed or empty rather than a valid notebook JSON document. Treat it as non-canonical until repaired.
+Focused notebook for loading a saved embedding run and turning it into a bandit instance for downstream experiments.
 
-## Recommended canonical workflow
+This is the notebook that corresponds most directly to:
 
-For the vehicle bandit setup, the cleanest current path is:
+- `scripts/bandit_instance.py`
+- `scripts/bandit_eval.py`
 
-1. Use `scripts/dataloader.py` to produce `gdf_cleaned`, `normalized_cleaned`, `valid_indices`, and `gdf_nodes`.
-2. Use `scripts/bandit_dataset.py` to build a bandit dataset variant.
-3. Use the final section of `notebooks/Experiment-Vehicle-Two-Tower.ipynb` as the reference training workflow.
-4. Save trained artifacts under a dedicated `results/<run_name>/` directory.
+### `notebooks/Experiment.ipynb`
 
-## Utility variants used so far
+Separate experiment notebook for an older or adjacent embedding/history pipeline. It is not the main current vehicle-bandit path.
 
-There are two main modeling decisions in the notebook:
+## Recommended workflow
 
-1. Action space:
-   - triggered subsets only
-   - full 129-action universe over node subsets of size 1 to 3
-2. Oracle utility:
-   - Gaussian distance decay
-   - rational distance decay
-   - clipped piecewise-linear decay
+For the current vehicle bandit setup, the cleanest path is:
 
-The full-universe formulation is the one associated with the final saved embedding runs in `results/`.
+1. Use `scripts/dataloader.py` to build the synchronized vehicle/sensor dataframe.
+2. Use `scripts/bandit_dataset.py` to build the dataset variant you want.
+3. Use `notebooks/Experiment-Vehicle-Two-Tower.ipynb` to train and save a learned embedding run.
+4. Use `scripts/bandit_instance.py` to convert that saved run into a linear bandit instance.
+5. Use `scripts/bandit_eval.py` to evaluate policies or offline score vectors on that instance.
 
-## Saved result folders
+## Outputs in `results/`
 
-Each result directory typically stores:
+A saved run directory typically contains:
 
 - `two_tower_model.pt`
 - `ridge_model.pkl`
@@ -131,11 +164,20 @@ Each result directory typically stores:
 
 See [results/README.md](./results/README.md) for a quick summary of the saved runs.
 
-## Suggested next cleanup
+## Current naming note
 
-The repo is now documented around one canonical loader and one canonical bandit entrypoint. The next high-value cleanup would be:
+The piecewise-linear dataset builder on disk is:
 
-1. extract the final two-tower training code from `Experiment-Vehicle-Two-Tower.ipynb` into a script or module
-2. reduce repeated notebook cells
-3. move invalid or abandoned notebooks into an `archive/` folder once you are sure they are not needed
+- `scripts/bandit_dataloader_utility_pc_linear.py`
 
+If you have older notes or tabs referring to `bandit_dataloader_pc_linear.py`, that appears to be the intended name, but it is not the current file path in the repo.
+
+## Next cleanup worth doing
+
+The highest-value next step would be extracting the final two-tower training block from `Experiment-Vehicle-Two-Tower.ipynb` into a normal script so the full pipeline becomes:
+
+- data loader
+- dataset builder
+- two-tower trainer
+- bandit instance builder
+- evaluator
