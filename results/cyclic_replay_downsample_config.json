@@ -1,0 +1,17 @@
+{
+  "cycle_start_idx": 265,
+  "cycle_end_idx": 7472,
+  "cycle_len": 7208,
+  "start_trim": 265,
+  "end_trim": 0,
+  "total_trim": 265,
+  "loc_boundary_m": 0.9493070013771703,
+  "loc_threshold_m": 1.0,
+  "min_len_constraint": 6500,
+  "X_boundary_over_p99_step": 2.0670854261895935,
+  "reward_boundary_over_p99_step": 3.3047650358054774,
+  "K_states": 20,
+  "pca_dim": 10,
+  "chosen_downsample_stride": 28,
+  "target_beta": 0.8
+}

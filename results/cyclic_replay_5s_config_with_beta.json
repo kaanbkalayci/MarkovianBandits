@@ -1,0 +1,58 @@
+{
+  "cyclic_replay": true,
+  "replay_type": "modular_circular_stride",
+  "sample_ms": 200,
+  "target_seconds": 5.0,
+  "stride": 25,
+  "effective_seconds_per_bandit_step": 5.0,
+  "cycle_start_idx": 265,
+  "cycle_end_idx": 7472,
+  "base_cycle_len": 7208,
+  "gcd_base_cycle_len_stride": 1,
+  "period_len": 7208,
+  "T_replay": 500000,
+  "beta_estimation": {
+    "state_definition": "KMeans(PCA(vec(X_t))) on one unique modular-stride period",
+    "K_states": 20,
+    "pca_dim": 10,
+    "beta_hat_used": 0.8075480035772411,
+    "beta_tv_fit": 0.8075480035772411,
+    "beta_slem": 0.8095157557221683,
+    "Cmix_tv_fit": 1.290213574715908,
+    "Cmix_emp_envelope": 1.6515513407406872,
+    "tv_fit_r2": 0.9998146678428504,
+    "irreducible": true,
+    "has_self_loop": true,
+    "visited_states": 20,
+    "state_counts_min": 162,
+    "state_counts_median": 344.5,
+    "state_counts_max": 758
+  },
+  "algorithm1_delay_candidates": [
+    {
+      "c_tau": 0.1,
+      "tau": 7,
+      "tau_over_T": 1.4e-05
+    },
+    {
+      "c_tau": 0.25,
+      "tau": 18,
+      "tau_over_T": 3.6e-05
+    },
+    {
+      "c_tau": 0.5,
+      "tau": 35,
+      "tau_over_T": 7e-05
+    },
+    {
+      "c_tau": 0.75,
+      "tau": 52,
+      "tau_over_T": 0.000104
+    },
+    {
+      "c_tau": 1.0,
+      "tau": 69,
+      "tau_over_T": 0.000138
+    }
+  ]
+}
